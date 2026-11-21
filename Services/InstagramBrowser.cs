@@ -41,7 +41,7 @@ public sealed class InstagramBrowser : IAsyncDisposable {
   for(int i=0;i<_opts.Instagram.MaxScrolls && quiet<5;i++){
    var hrefs=await _page.Locator("a[href]").EvaluateAllAsync<string[]>("els=>els.map(e=>e.href)");
    int oldCount=found.Count;
-   foreach(var h in hrefs){var m=Regex.Match(h,@"instagram\\.com/(p|reel|tv)/([A-Za-z0-9_-]+)"); if(m.Success){var kind=m.Groups[1].Value; var id=m.Groups[2].Value; found[id]=new(id,$"https://www.instagram.com/{kind}/{id}/");}}
+   foreach(var h in hrefs){var m=Regex.Match(h,@"instagram\.com/(p|reel|tv)/([A-Za-z0-9_-]+)"); if(m.Success){var kind=m.Groups[1].Value; var id=m.Groups[2].Value; found[id]=new(id,$"https://www.instagram.com/{kind}/{id}/");}}
    quiet=found.Count==oldCount?quiet+1:0;
    await _page.EvaluateAsync("window.scrollTo(0,document.body.scrollHeight)");
    await _page.WaitForTimeoutAsync(_opts.Instagram.ScrollDelayMs);
