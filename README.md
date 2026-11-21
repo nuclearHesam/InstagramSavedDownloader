@@ -1,19 +1,31 @@
 # Instagram Saved Downloader — Windows 10/11
 
-.NET 8 console project. It imports a Netscape cookies.txt into Playwright Chromium, reads Saved post URLs, downloads sequentially with yt-dlp, persists progress in SQLite, and only attempts Unsave after local media output is detected.
+A .NET 8 console app that scans your Instagram Saved posts, downloads them sequentially with yt-dlp, tracks progress in SQLite, and only attempts to Unsave after a successful local download.
 
 ## Requirements
 - Windows 10/11 and .NET 8 SDK
+- Google Chrome installed (recommended configuration)
 - `tools/yt-dlp.exe`
-- `Cookies/cookies.txt` in Netscape HTTP Cookie format (must include valid Instagram session cookies)
+- A valid Netscape-format `Cookies/cookies.txt` for the first authentication, if the dedicated browser profile is not already signed in
 
-## Run
+## First run
+1. Export your own Instagram cookies to `Cookies/cookies.txt` in Netscape format.
+2. Put `yt-dlp.exe` in `tools/yt-dlp.exe`.
+3. Run:
+
 ```powershell
 dotnet restore
 dotnet build -c Release
-.\bin\Release\net8.0\playwright.ps1 install chromium
+pwsh bin/Release/net8.0/playwright.ps1 install chromium
 dotnet run -c Release
 ```
+
+The app launches Google Chrome with a **separate automation profile** in `BrowserProfile/`. On the first run, it imports the cookies if that profile is not already signed in. Chrome then stores the session in that profile, so later runs reuse it and normally do not need the cookies file again.
+
+You can also sign in manually in the launched Chrome window once; the dedicated profile will retain that session.
+
+## Important Chrome note
+Do not point the app at your everyday Chrome `User Data` directory. Current Chrome security behavior blocks remote debugging/automation against the default profile. The app creates and uses its own `BrowserProfile` folder instead.
 
 ## Safety behavior
 - Sequential downloads only.
@@ -22,9 +34,11 @@ dotnet run -c Release
 - If the Unsave control is ambiguous or cannot be verified, the app leaves the post alone.
 - State is stored in `Database/downloads.db`, so a later run can resume.
 
-## Important limitations
-Instagram changes its UI frequently. Saved-page discovery and Unsave button selectors are conservative and may need maintenance. If the page structure differs, the program stops rather than guessing.
+## Session and privacy
+- Cookies and the persistent browser profile are credentials. Never commit or share them.
+- Keep `Cookies/cookies.txt`, `BrowserProfile/`, `Downloads/`, and `Database/` out of Git.
+- Instagram may expire/revoke sessions or request a checkpoint/2FA. In that case, sign in manually in the dedicated Chrome window or refresh the cookies file.
+- The app does not bypass CAPTCHA, checkpoints, 2FA, access controls, or rate limits.
 
-yt-dlp currently has known failures for some image-only carousel posts; a recent issue documents cases where carousel entries are reported as having no video formats. Such posts remain Saved and are recorded as failures. This starter version does not yet include a separate image downloader.
-
-Use only for your own account/content. It does not bypass CAPTCHA, checkpoints, 2FA, access controls, or rate limits. If Instagram requests verification, stop and refresh your cookies via your normal browser. Keep cookies private.
+## Limitations
+Instagram changes its UI frequently. Saved-page discovery and Unsave button selectors are conservative and may need maintenance. Image-only carousel downloads are not guaranteed in this starter version; failed posts remain Saved.
