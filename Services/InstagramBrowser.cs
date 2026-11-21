@@ -6,11 +6,24 @@ public sealed class InstagramBrowser : IAsyncDisposable {
  private readonly IPlaywright _pw; private readonly IBrowser _browser; private readonly IBrowserContext _ctx;
  private readonly IPage _page; private readonly AppOptions _opts;
  private InstagramBrowser(IPlaywright p,IBrowser b,IBrowserContext c,IPage page,AppOptions o){_pw=p;_browser=b;_ctx=c;_page=page;_opts=o;}
- public static async Task<InstagramBrowser> CreateAsync(AppOptions o) {
-  var p=await Playwright.CreateAsync(); var b=await p.Chromium.LaunchAsync(new(){Headless=o.Instagram.Headless});
-  var c=await b.NewContextAsync(new(){ViewportSize=new(){Width=1400,Height=950},Locale="en-US"});
-  await CookieImporter.ImportAsync(c,Path.GetFullPath(o.Instagram.CookiesPath));
-  return new InstagramBrowser(p,b,c,await c.NewPageAsync(),o);
+ public static async Task<InstagramBrowser> CreateAsync(AppOptions o, string cookiesPath) {
+  var p=await Playwright.CreateAsync();
+  try {
+   var channel=string.IsNullOrWhiteSpace(o.Instagram.BrowserChannel) ? null : o.Instagram.BrowserChannel.Trim();
+   IBrowser b;
+   try {
+    b=await p.Chromium.LaunchAsync(new(){Headless=o.Instagram.Headless,Channel=channel});
+   } catch (PlaywrightException ex) when (!string.IsNullOrWhiteSpace(channel)) {
+    throw new InvalidOperationException($"Could not start browser channel '{channel}'. Install Google Chrome, or set Instagram:BrowserChannel to 'chromium' in appsettings.json. Details: {ex.Message}",ex);
+   }
+   var c=await b.NewContextAsync(new(){ViewportSize=new(){Width=1400,Height=950},Locale="en-US"});
+   try {
+    await CookieImporter.ImportAsync(c,cookiesPath);
+    return new InstagramBrowser(p,b,c,await c.NewPageAsync(),o);
+   } catch {
+    await c.CloseAsync(); await b.CloseAsync(); throw;
+   }
+  } catch { p.Dispose(); throw; }
  }
  public async Task<List<SavedPost>> CollectSavedPostsAsync() {
   await _page.GotoAsync("https://www.instagram.com/",new(){WaitUntil=WaitUntilState.DOMContentLoaded,Timeout=60000});
@@ -27,9 +40,9 @@ public sealed class InstagramBrowser : IAsyncDisposable {
   var found=new Dictionary<string,SavedPost>(StringComparer.OrdinalIgnoreCase); var quiet=0;
   for(int i=0;i<_opts.Instagram.MaxScrolls && quiet<5;i++){
    var hrefs=await _page.Locator("a[href]").EvaluateAllAsync<string[]>("els=>els.map(e=>e.href)");
-   int old=found.Count;
+   int oldCount=found.Count;
    foreach(var h in hrefs){var m=Regex.Match(h,@"instagram\.com/(p|reel|tv)/([A-Za-z0-9_-]+)"); if(m.Success){var kind=m.Groups[1].Value; var id=m.Groups[2].Value; found[id]=new(id,$"https://www.instagram.com/{kind}/{id}/");}}
-   quiet=found.Count==old?quiet+1:0;
+   quiet=found.Count==oldCount?quiet+1:0;
    await _page.EvaluateAsync("window.scrollTo(0,document.body.scrollHeight)");
    await _page.WaitForTimeoutAsync(_opts.Instagram.ScrollDelayMs);
   }

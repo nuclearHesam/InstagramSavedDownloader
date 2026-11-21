@@ -5,18 +5,17 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 Console.WriteLine("Instagram Saved Downloader | sequential safe mode");
 var cfg = new ConfigurationBuilder().SetBasePath(AppContext.BaseDirectory).AddJsonFile("appsettings.json").Build();
 var o = cfg.Get<AppOptions>() ?? new AppOptions();
-string R(string p) => Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, p));
-var cookies = R(o.Instagram.CookiesPath); 
-var yt = R(o.Downloader.YtDlpPath); 
+// Resolve configured paths from the application folder, not the shell's current directory.
+string R(string p) => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, p));
+var cookies = R(o.Instagram.CookiesPath);
+var yt = R(o.Downloader.YtDlpPath);
 var output = R(o.Downloader.OutputDirectory);
-
 if (!File.Exists(cookies)) { Console.WriteLine($"Missing cookies: {cookies}"); return; }
 if (!File.Exists(yt)) { Console.WriteLine($"Missing yt-dlp.exe: {yt}"); return; }
-
 var db = new StateStore(R(o.Database.Path)); await db.InitializeAsync();
 try
 {
-    await using var ig = await InstagramBrowser.CreateAsync(o);
+    await using var ig = await InstagramBrowser.CreateAsync(o, cookies);
     Console.WriteLine("Scanning Saved...");
     var posts = await ig.CollectSavedPostsAsync(); await db.UpsertPostsAsync(posts);
     Console.WriteLine($"Detected {posts.Count} post(s).");
@@ -53,4 +52,4 @@ try
     }
 }
 catch (Exception ex) { Console.WriteLine("Stopped safely: " + ex.Message); }
-Console.WriteLine("\nFinished. Press Enter."); Console.ReadLine();
+Console.WriteLine("\\nFinished. Press Enter."); Console.ReadLine();

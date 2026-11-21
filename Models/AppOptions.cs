@@ -6,6 +6,8 @@ public sealed class AppOptions {
 }
 public sealed class InstagramOptions {
  public string CookiesPath {get;set;} = "Cookies/cookies.txt";
+ // "chrome" uses the Google Chrome installation; use "chromium" for Playwright's bundled browser.
+ public string BrowserChannel {get;set;} = "chrome";
  public bool Headless {get;set;} = false;
  public int MaxScrolls {get;set;} = 80;
  public int ScrollDelayMs {get;set;} = 1800;
