@@ -113,7 +113,7 @@ public sealed class InstagramBrowser : IAsyncDisposable
 
             foreach (var href in hrefs)
             {
-                var match = Regex.Match(href, @"instagram\\.com/(p|reel|tv)/([A-Za-z0-9_-]+)");
+                var match = Regex.Match(href, @"instagram\.com/(p|reel|tv)/([A-Za-z0-9_-]+)");
                 if (!match.Success) continue;
                 var kind = match.Groups[1].Value;
                 var code = match.Groups[2].Value;
