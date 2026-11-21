@@ -49,17 +49,30 @@ public sealed class InstagramBrowser : IAsyncDisposable {
   if(found.Count==0) throw new InvalidOperationException("No Saved post links found. Instagram may have changed its Saved page structure.");
   return found.Values.ToList();
  }
+ public async Task<bool> IsVideoPostAsync(string url) {
+  await _page.GotoAsync(url,new(){WaitUntil=WaitUntilState.DOMContentLoaded,Timeout=60000});
+  await _page.WaitForTimeoutAsync(1800);
+  if(_page.Url.Contains("/accounts/login",StringComparison.OrdinalIgnoreCase))
+   throw new InvalidOperationException("Instagram login required while checking post media type.");
+  return await _page.EvaluateAsync<bool>("() => !!(document.querySelector('video') || document.querySelector('meta[property=\\"og:video\\"]') || document.querySelector('meta[property=\\"og:video:secure_url\\"]') || document.querySelector('meta[name=\\"twitter:player:stream\\"]'))");
+ }
  public async Task<bool> TryUnsaveAsync(string url) {
   await _page.GotoAsync(url,new(){WaitUntil=WaitUntilState.DOMContentLoaded,Timeout=60000}); await _page.WaitForTimeoutAsync(2200);
-  var controls=_page.Locator("button[aria-label],div[role='button'][aria-label]");
-  int n=await controls.CountAsync(); var matches=new List<ILocator>();
-  for(int i=0;i<n;i++){var el=controls.Nth(i); var label=await el.GetAttributeAsync("aria-label")??"";
-   if(Regex.IsMatch(label,@"(remove.*saved|remove from saved|unsave)",RegexOptions.IgnoreCase)) matches.Add(el);}
+  var controls=_page.Locator("button,[role='button']");
+  int n=await controls.CountAsync();
+  var matches=new List<ILocator>();
+  for(int i=0;i<n;i++){
+   var el=controls.Nth(i);
+   var label=await el.EvaluateAsync<string>("e => [e.getAttribute('aria-label'),e.getAttribute('title'),e.innerText,...Array.from(e.querySelectorAll('svg[aria-label],svg title')).map(x=>x.getAttribute('aria-label')||x.textContent)].filter(Boolean).join(' ')");
+   if(Regex.IsMatch(label,@"(remove.*saved|remove from saved|unsave|^\\s*remove\\s*$)",RegexOptions.IgnoreCase)) matches.Add(el);
+  }
   if(matches.Count!=1) return false;
-  await matches[0].ClickAsync(new(){Timeout=10000}); await _page.WaitForTimeoutAsync(_opts.Instagram.ActionDelayMs);
-  var labels=await controls.EvaluateAllAsync<string[]>("els=>els.map(e=>e.getAttribute('aria-label')||'')");
-  return labels.Any(x=>Regex.IsMatch(x,@"(^save$|save this post)",RegexOptions.IgnoreCase))
-    && !labels.Any(x=>Regex.IsMatch(x,@"remove.*saved|remove from saved|unsave",RegexOptions.IgnoreCase));
+  await matches[0].ClickAsync(new(){Timeout=10000});
+  await _page.WaitForTimeoutAsync(Math.Max(1200,_opts.Instagram.ActionDelayMs));
+  var labels=await controls.EvaluateAllAsync<string[]>("els=>els.map(e=>[e.getAttribute('aria-label'),e.getAttribute('title'),e.innerText,...Array.from(e.querySelectorAll('svg[aria-label],svg title')).map(x=>x.getAttribute('aria-label')||x.textContent)].filter(Boolean).join(' '))");
+  bool stillSaved=labels.Any(x=>Regex.IsMatch(x,@"(remove.*saved|remove from saved|unsave|^\\s*remove\\s*$)",RegexOptions.IgnoreCase));
+  bool nowSavable=labels.Any(x=>Regex.IsMatch(x,@"(^\\s*save\\s*$|save this post)",RegexOptions.IgnoreCase));
+  return !stillSaved && nowSavable;
  }
  public async ValueTask DisposeAsync(){await _ctx.CloseAsync();await _browser.CloseAsync();_pw.Dispose();}
 }
