@@ -1,9 +1,10 @@
 # Instagram Saved Downloader — Windows 10/11
 
-.NET 8 console project. It imports a Netscape cookies.txt into Playwright Chromium, reads Saved post URLs, downloads sequentially with yt-dlp, persists progress in SQLite, and only attempts Unsave after local media output is detected.
+.NET 8 console project. It launches Google Chrome by default and imports a Netscape cookies.txt, reads Saved post URLs, downloads sequentially with yt-dlp, persists progress in SQLite, and only attempts Unsave after local media output is detected.
 
 ## Requirements
 - Windows 10/11 and .NET 8 SDK
+- Google Chrome installed (default browser channel), or set `Instagram:BrowserChannel` to `chromium` to use Playwright Chromium
 - `tools/yt-dlp.exe`
 - `Cookies/cookies.txt` in Netscape HTTP Cookie format (must include valid Instagram session cookies)
 
