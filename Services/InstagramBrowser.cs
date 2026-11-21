@@ -34,7 +34,7 @@ public sealed class InstagramBrowser : IAsyncDisposable {
   var excluded=new[]{"explore","accounts","direct","reels","stories","about","legal","privacy"};
   var user=links.Select(x=>x.Trim('/')).FirstOrDefault(x=>!excluded.Contains(x,StringComparer.OrdinalIgnoreCase));
   if(string.IsNullOrWhiteSpace(user)) throw new InvalidOperationException("Could not identify logged-in profile from page links.");
-  await _page.GotoAsync($"https://www.instagram.com/{user}/saved/all/",new(){WaitUntil=WaitUntilState.DOMContentLoaded,Timeout=60000});
+  await _page.GotoAsync($"https://www.instagram.com/{user}/saved/all-posts/",new(){WaitUntil=WaitUntilState.DOMContentLoaded,Timeout=60000});
   await _page.WaitForTimeoutAsync(3000);
   if(_page.Url.Contains("/accounts/login",StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Instagram login required.");
   var found=new Dictionary<string,SavedPost>(StringComparer.OrdinalIgnoreCase); var quiet=0;
