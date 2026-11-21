@@ -1,0 +1,20 @@
+# Project Bilud
+bin/
+obj/
+.vs/
+
+# Instagram authentication cookies
+Cookies/cookies.txt
+cookies.txt
+**/cookies.txt
+playwright/.auth/
+
+# Downloaded media
+Downloads/
+Downloads/
+Database/*.db*
+
+# Local database
+*.db
+*.db-shm
+*.db-wal
