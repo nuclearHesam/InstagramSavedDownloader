@@ -6,9 +6,13 @@ Console.WriteLine("Instagram Saved Downloader | sequential safe mode");
 var cfg = new ConfigurationBuilder().SetBasePath(AppContext.BaseDirectory).AddJsonFile("appsettings.json").Build();
 var o = cfg.Get<AppOptions>() ?? new AppOptions();
 string R(string p) => Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, p));
-var cookies = R(o.Instagram.CookiesPath); var yt = R(o.Downloader.YtDlpPath); var output = R(o.Downloader.OutputDirectory);
+var cookies = R(o.Instagram.CookiesPath); 
+var yt = R(o.Downloader.YtDlpPath); 
+var output = R(o.Downloader.OutputDirectory);
+
 if (!File.Exists(cookies)) { Console.WriteLine($"Missing cookies: {cookies}"); return; }
 if (!File.Exists(yt)) { Console.WriteLine($"Missing yt-dlp.exe: {yt}"); return; }
+
 var db = new StateStore(R(o.Database.Path)); await db.InitializeAsync();
 try
 {
